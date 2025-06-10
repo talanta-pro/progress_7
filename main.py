@@ -1,39 +1,33 @@
 import streamlit as st
-from src.data_loader import load_main_data
-from src.charts import plot_grades
-from src.comments import show_comments, load_comments
-from src.portraits import show_portrait
-from src.export_utils import export_report
+from src.data_loader import load_progress, load_comments
+import pages._1_Table as table
+import pages._2_Graphics as graphics
+import pages._3_Errors as errors
+import pages._4_Comments as comments
 
-st.set_page_config(page_title="Анализ прогресса учеников", layout="wide")
-st.title("Анализ прогресса учеников")
+st.set_page_config(page_title="Анализ прогресса учащихся", layout="wide")
+st.title("Анализ прогресса учащихся")
 
 # Sidebar uploads
-data_file = st.sidebar.file_uploader("Excel-файл (лист 'Ввод данных')", type="xlsx")
-comment_file = st.sidebar.file_uploader("Комментарии (.docx/.pdf)", type=["docx","pdf"])
-portrait_files = st.sidebar.file_uploader("Портреты (.docx/.pdf)", type=["docx","pdf"], accept_multiple_files=True)
+progress_file = st.sidebar.file_uploader("Excel-файл (Ввод данных)", type="xlsx")
+comment_file = st.sidebar.file_uploader("Комментарии (.xlsx/.csv)", type=["xlsx","csv"])
 
-if not data_file:
-    st.info("Загрузите Excel-файл с данными.")
+if not progress_file:
+    st.warning("Пожалуйста, загрузите файл прогресса.")
     st.stop()
 
-df = load_main_data(data_file)
-students = df["ФИО ученика"].unique().tolist()
-student = st.selectbox("Выберите ученика", students)
+df = load_progress(progress_file)
 
-tabs = st.tabs(["Графики", "Комментарии", "Портреты", "Экспорт"])
-with tabs[0]:
-    subject = st.selectbox("Предмет (или Все)", ["Все"] + df["Предмет"].unique().tolist())
-    if subject=="Все":
-        subject=None
-    plot_grades(df, student, subject)
-with tabs[1]:
-    if comment_file:
-        comments = load_comments(comment_file)
-        show_comments(comments, student)
+page = st.sidebar.selectbox("Раздел", ["Table","Graphics","Errors","Comments"])
+if page == "Table":
+    table.show(df)
+elif page == "Graphics":
+    graphics.show(df)
+elif page == "Errors":
+    errors.show(df)
+elif page == "Comments":
+    if not comment_file:
+        st.info("Загрузите файл комментариев.")
     else:
-        st.info("Загрузите файл с комментариями.")
-with tabs[2]:
-    show_portrait(portrait_files or [], student)
-with tabs[3]:
-    export_report(df, student)
+        df_comm = load_comments(comment_file)
+        comments.show(df_comm)
